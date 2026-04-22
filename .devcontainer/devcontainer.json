@@ -1,0 +1,10 @@
+﻿{
+  "name": "Gate Alpha Agent",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+  "postCreateCommand": "pip install -r requirements.txt && ollama pull qwen2.5:7b",
+  "forwardPorts": [11434],
+  "containerEnv": { "OLLAMA_HOST": "0.0.0.0" }
+}
