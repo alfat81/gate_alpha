@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import sys
 import asyncio
@@ -24,7 +24,7 @@ async def main():
 
     ollama = OllamaClient(llm_config)
     try:
-        # ✅ ИСПРАВЛЕНО: добавлен await для асинхронного вызова
+        # Асинхронный вызов list()
         models = await ollama.client.list()
         logger.info(f"✓ Ollama готов: {len(models['models'])} моделей")
     except Exception as e:
@@ -41,6 +41,5 @@ async def main():
     await agent.run_demo(cycles=3)
     logger.info("✅ Демо-цикл завершён")
 
-# ✅ ИСПРАВЛЕНО: __name__ и "__main__"
 if __name__ == "__main__":
     asyncio.run(main())

@@ -1,28 +1,30 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 import asyncio
 import logging
-import json
 from typing import List, Dict, Any, Optional
+
 import gate_api
 from gate_api import ApiException
 from pydantic import BaseModel, Field
+
 from config.settings import GateConfig
 from llm.ollama_client import OllamaClient
 
 logger = logging.getLogger(__name__)
 
+
 class ScannerConfig(BaseModel):
     """Динамическая конфигурация фильтров от LLM."""
     min_volatility_pct: float = Field(ge=0, le=100, description="Мин. |изменение 24ч| в %")
     min_volume_usd: float = Field(ge=0, description="Мин. объём в USD")
-    max_volume_usd: Optional[float] = Field(None, description="Макс. объём в USD (опционально)")
+    max_volume_usd: Optional[float] = Field(default=None, description="Макс. объём в USD (опционально)")
     exclude_quotes: List[str] = Field(default=["USDT", "USDC", "BTC", "ETH"])
     reason: str = Field(description="Обоснование выбранных параметров")
+
 
 class AlphaScanner:
     """Сканер рынка с LLM-адаптивной фильтрацией."""
     
-    # Дефолтные фильтры (фолбэк при ошибке LLM)
     DEFAULT_CONFIG = ScannerConfig(
         min_volatility_pct=5.0,
         min_volume_usd=10_000,
@@ -33,7 +35,7 @@ class AlphaScanner:
     
     def __init__(self, gate_config: GateConfig, llm_client: Optional[OllamaClient] = None):
         self.config = gate_config
-        self.llm_client = llm_client  # Опционально: если None — используем дефолт
+        self.llm_client = llm_client
         self.api_client = gate_api.ApiClient()
         self.api_client.host = gate_config.base_url
         self.api_client.key = gate_config.api_key
@@ -75,7 +77,7 @@ class AlphaScanner:
             logger.info(f"🤖 LLM-конфиг: {config.reason}")
             return config
         except Exception as e:
-            logger.error(f"Ошибка получения конфига от LLM: {e}, используем дефолт")
+            logger.warning(f"Ошибка получения конфига от LLM: {e}, используем дефолт")
             return self.DEFAULT_CONFIG
 
     async def scan_alpha_pairs(self, limit: int = 10) -> List[Dict[str, Any]]:
@@ -103,12 +105,14 @@ class AlphaScanner:
             if t.change_percentage:
                 try:
                     changes.append(abs(float(t.change_percentage)))
-                except: pass
+                except:
+                    pass
             if t.base_volume and t.last:
                 try:
                     vol = float(t.base_volume) * float(t.last)
                     volumes.append(vol)
-                except: pass
+                except:
+                    pass
         
         market_summary = {
             "total_pairs": len(tickers),
@@ -150,7 +154,7 @@ class AlphaScanner:
                 if filters.max_volume_usd and volume_usd > filters.max_volume_usd:
                     continue
                 
-                score = abs(change_pct) * (volume_usd ** 0.5)  # Нелинейный скоринг
+                score = abs(change_pct) * (volume_usd ** 0.5)
                 candidates.append({
                     "currency_pair": pair,
                     "price": last_price,

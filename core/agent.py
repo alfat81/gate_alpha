@@ -1,6 +1,7 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 import asyncio
 import logging
+from typing import Optional
 from pydantic import BaseModel, Field
 
 from config.settings import GateConfig, TradingConfig
@@ -12,6 +13,7 @@ from core.grid_manager import GridManager
 
 logger = logging.getLogger(__name__)
 
+
 class EntrySignal(BaseModel):
     """Модель ответа LLM для торгового сигнала."""
     entry_price: float = Field(description="Рекомендуемая цена входа")
@@ -21,8 +23,10 @@ class EntrySignal(BaseModel):
     confidence: float = Field(description="Уверенность в сигнале (0.0-1.0)")
     risk_score: int = Field(description="Оценка риска (1-10)")
 
+
 class AlphaTradingAgent:
     """Оркестратор торгового агента."""
+
     def __init__(
         self,
         gate_config: GateConfig,
@@ -33,7 +37,7 @@ class AlphaTradingAgent:
         self.llm_client = llm_client
         self.trading_config = trading_config
 
-        self.scanner = AlphaScanner(gate_config, llm_client=llm_client) 
+        self.scanner = AlphaScanner(gate_config, llm_client=llm_client)
         self.risk_manager = RiskManager(trading_config)
         self.grid_manager = GridManager()
         
@@ -55,6 +59,7 @@ class AlphaTradingAgent:
                     await asyncio.sleep(5)
                     continue
 
+                # Берём лучшую пару
                 target = pairs[0]
                 pair_name = target["currency_pair"]
                 current_price = target["price"]
@@ -111,8 +116,9 @@ class AlphaTradingAgent:
             except Exception as e:
                 self.logger.error(f"Критическая ошибка в цикле агента: {e}", exc_info=True)
 
+            # Пауза между циклами
             if i < cycles:
                 self.logger.info("Пауза 5 секунд перед следующим циклом...")
                 await asyncio.sleep(5)
 
-        self.logger.info("Демо-цикл завершен.")
+        self.logger.info("Демо-цикл завершён.")
