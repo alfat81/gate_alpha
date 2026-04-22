@@ -2,6 +2,7 @@
 import asyncio
 import logging
 from typing import List, Dict, Any
+
 import gate_api
 from gate_api import ApiException
 from config.settings import GateConfig
@@ -9,22 +10,19 @@ from config.settings import GateConfig
 logger = logging.getLogger(__name__)
 
 class AlphaScanner:
-    """Сканер для testnet: упрощённые фильтры, без LLM-зависимостей."""
+    """Сканер для testnet: упрощённые фильтры."""
     
-    # 🔥 ОСЛАБЛЕННЫЕ ФИЛЬТРЫ ДЛЯ TESTNET
-    MIN_VOLATILITY = 3.0      # |Δ| > 3%
-    MIN_VOLUME = 1_000        # объём > $1,000
+    MIN_VOLATILITY = 3.0
+    MIN_VOLUME = 1_000
     EXCLUDE_QUOTES = {"USDT", "USDC", "BTC", "ETH"}
     
     def __init__(self, gate_config: GateConfig, llm_client=None):
         self.config = gate_config
         self.api_client = gate_api.ApiClient()
-        self.api_client.host = gate_config.base_url  # ← гарантированно testnet
+        self.api_client.host = gate_config.base_url
         self.api_client.key = gate_config.api_key
         self.api_client.secret = gate_config.api_secret
         self.api_client.set_default_header("User-Agent", "GateAlphaAgent/1.0")
-        # Отключаем LLM-конфиг для стабильности
-        # Если нужен — раскомментируй позже
 
     async def scan_alpha_pairs(self, limit: int = 10) -> List[Dict[str, Any]]:
         api_instance = gate_api.SpotApi(gate_api.ApiClient())
@@ -59,7 +57,6 @@ class AlphaScanner:
                     continue
                 _, quote = parts
                 
-                # 🔥 Упрощённые фильтры для testnet
                 if quote in self.EXCLUDE_QUOTES:
                     continue
                 if abs(change_pct) < self.MIN_VOLATILITY:
@@ -81,17 +78,6 @@ class AlphaScanner:
         candidates.sort(key=lambda x: x["score"], reverse=True)
         
         result = [{k: v for k, v in item.items() if k != "score"} for item in candidates[:limit]]
-        
-        # DEBUG: покажем топ-3 по объёму (даже если не прошли)
-        if not result:
-            debug = sorted(
-                [t for t in tickers if t.currency_pair and t.last],
-                key=lambda x: float(x.base_volume or 0) * float(x.last or 0),
-                reverse=True
-            )[:3]
-            for dp in debug:
-                vol = float(dp.base_volume or 0) * float(dp.last or 0)
-                logger.debug(f"🔍 DEBUG: {dp.currency_pair} | vol=${vol:,.0f} | Δ={dp.change_percentage}%")
         
         logger.info(f"✅ Найдено {len(result)} пар (фильтры: Δ>{self.MIN_VOLATILITY}%, vol>${self.MIN_VOLUME:,})")
         return result

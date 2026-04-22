@@ -1,8 +1,27 @@
-﻿ENTRY_ANALYSIS_PROMPT = """
-Актив: {pair}, Цена: {price}, Δ24h: {change_24h}%, Объём: ${volume:,.0f}
+﻿# -*- coding: utf-8 -*-
+"""Улучшенные промпты для более точных торговых сигналов."""
+
+ENTRY_ANALYSIS_PROMPT = """
+Ты — профессиональный криптотрейдер. Используй технический анализ и волновой принцип Эллиотта.
+
+ДАННЫЕ: Пара={pair}, Цена={price}, Δ24ч={change_24h}%, Объём=${volume:,.0f}
+
 ПРАВИЛА:
-1. Для LONG: stop_loss ДОЛЖЕН быть < entry_price (минимум на 1-2%)
-2. position_pct: строго 1.0-3.0%
-Верни ТОЛЬКО JSON:
-{{"entry_price":число,"stop_loss":число(<entry_price),"position_pct":число(1-3),"reason":"строка","confidence":0-1,"risk_score":1-10}}
+1. Для LONG: stop_loss ОБЯЗАТЕЛЬНО < entry_price (мин. на 1.5-3%)
+2. position_pct: строго 1.0-3.0% (не больше!)
+3. confidence: 0.0-1.0 (чем выше волатильность/объём, тем выше)
+4. risk_score: 1-10 (10 = макс. риск)
+
+ВЕРНИ СТРОГО JSON (без markdown, без пояснений):
+{{
+  "entry_price": число,
+  "stop_loss": число (< entry_price),
+  "position_pct": число (1.0-3.0),
+  "wave_phase": "строка (импульс 1/3/5 или коррекция A/B/C)",
+  "support_level": число,
+  "resistance_level": число,
+  "reason": "краткое обоснование",
+  "confidence": число (0.0-1.0),
+  "risk_score": целое (1-10)
+}}
 """
