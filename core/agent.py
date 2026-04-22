@@ -1,7 +1,6 @@
-﻿import asyncio
+﻿# -*- coding: utf-8 -*-
+import asyncio
 import logging
-from typing import Optional
-
 from pydantic import BaseModel, Field
 
 from config.settings import GateConfig, TradingConfig
@@ -13,7 +12,6 @@ from core.grid_manager import GridManager
 
 logger = logging.getLogger(__name__)
 
-
 class EntrySignal(BaseModel):
     """Модель ответа LLM для торгового сигнала."""
     entry_price: float = Field(description="Рекомендуемая цена входа")
@@ -23,14 +21,8 @@ class EntrySignal(BaseModel):
     confidence: float = Field(description="Уверенность в сигнале (0.0-1.0)")
     risk_score: int = Field(description="Оценка риска (1-10)")
 
-
 class AlphaTradingAgent:
-    """
-    Оркестратор торгового агента.
-    Управляет циклом: Сканирование -> Анализ LLM -> Проверка рисков -> Генерация сетки.
-    Работает в демо-режиме (без реальных ордеров).
-    """
-
+    """Оркестратор торгового агента."""
     def __init__(
         self,
         gate_config: GateConfig,
@@ -41,19 +33,14 @@ class AlphaTradingAgent:
         self.llm_client = llm_client
         self.trading_config = trading_config
 
-        self.scanner = AlphaScanner(gate_config)
+        self.scanner = AlphaScanner(gate_config, llm_client=llm_client) 
         self.risk_manager = RiskManager(trading_config)
         self.grid_manager = GridManager()
         
         self.logger = logging.getLogger(f"{__name__}.AlphaTradingAgent")
 
     async def run_demo(self, cycles: int = 3) -> None:
-        """
-        Запускает демонстрационный цикл торговли.
-        
-        Args:
-            cycles: Количество итераций сканирования и анализа.
-        """
+        """Запускает демонстрационный цикл торговли."""
         self.logger.info(f"Запуск демо-агента на {cycles} циклов...")
         
         for i in range(1, cycles + 1):
@@ -68,7 +55,6 @@ class AlphaTradingAgent:
                     await asyncio.sleep(5)
                     continue
 
-                # Берем лучшую пару
                 target = pairs[0]
                 pair_name = target["currency_pair"]
                 current_price = target["price"]
@@ -88,7 +74,7 @@ class AlphaTradingAgent:
                 try:
                     signal: EntrySignal = await self.llm_client.query_structured(
                         prompt=prompt,
-                        schema=EntrySignal
+                        response_model=EntrySignal
                     )
                     self.logger.info(f"LLM Сигнал: {signal.reason} (Уверенность: {signal.confidence})")
                 except Exception as e:
@@ -97,7 +83,6 @@ class AlphaTradingAgent:
                     continue
 
                 # 4. Валидация рисков
-                # Эмулируем баланс $1000 для проверки
                 is_valid, msg = self.risk_manager.validate_trade(signal, balance=1000.0)
 
                 if not is_valid:
@@ -107,8 +92,7 @@ class AlphaTradingAgent:
 
                 self.logger.info("✅ Вход подтверждён риск-менеджером.")
 
-                # 5. Генерация сетки ордеров (выход)
-                # В реальном режиме здесь был бы вызов API для размещения ордеров
+                # 5. Генерация сетки ордеров
                 grid_orders = self.grid_manager.generate_exit_grid(
                     entry_price=signal.entry_price,
                     total_amount_usd=1000.0 * (signal.position_pct / 100.0),
@@ -127,9 +111,8 @@ class AlphaTradingAgent:
             except Exception as e:
                 self.logger.error(f"Критическая ошибка в цикле агента: {e}", exc_info=True)
 
-            # Пауза между циклами
             if i < cycles:
-                self.logger.info(f"Пауза 5 секунд перед следующим циклом...")
+                self.logger.info("Пауза 5 секунд перед следующим циклом...")
                 await asyncio.sleep(5)
 
         self.logger.info("Демо-цикл завершен.")

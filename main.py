@@ -1,10 +1,11 @@
 ﻿#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 import sys
 import asyncio
 import logging
 from pathlib import Path
 
-# Фикс для Windows: добавляем корень проекта в PYTHONPATH
+# Fix для Windows: добавляем корень проекта в sys.path
 project_root = Path(__file__).resolve().parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
@@ -23,10 +24,11 @@ async def main():
 
     ollama = OllamaClient(llm_config)
     try:
-        models = ollama.client.list()
-        logger.info(f"Ollama готов: {len(models['models'])} моделей")
+        # ✅ ИСПРАВЛЕНО: добавлен await для асинхронного вызова
+        models = await ollama.client.list()
+        logger.info(f"✓ Ollama готов: {len(models['models'])} моделей")
     except Exception as e:
-        logger.error(f"Ошибка подключения к Ollama: {e}")
+        logger.error(f"✗ Ошибка Ollama: {e}")
         return
 
     agent = AlphaTradingAgent(
@@ -34,10 +36,11 @@ async def main():
         llm_client=ollama,
         trading_config=trading_config
     )
-    
-    logger.info("Запуск агента в режиме testnet...")
-    await agent.run_demo(cycles=3)
-    logger.info("Демо-цикл завершён")
 
+    logger.info("🔄 Запуск агента в режиме testnet...")
+    await agent.run_demo(cycles=3)
+    logger.info("✅ Демо-цикл завершён")
+
+# ✅ ИСПРАВЛЕНО: __name__ и "__main__"
 if __name__ == "__main__":
     asyncio.run(main())
