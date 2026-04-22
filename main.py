@@ -5,7 +5,7 @@ import asyncio
 import logging
 from pathlib import Path
 
-# Fix для Windows: добавляем корень проекта в sys.path
+# Fix для Windows
 project_root = Path(__file__).resolve().parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
@@ -24,7 +24,6 @@ async def main():
 
     ollama = OllamaClient(llm_config)
     try:
-        # Асинхронный вызов list()
         models = await ollama.client.list()
         logger.info(f"✓ Ollama готов: {len(models['models'])} моделей")
     except Exception as e:
