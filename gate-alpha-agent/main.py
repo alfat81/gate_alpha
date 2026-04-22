@@ -138,9 +138,9 @@ async def main():
     if not ollama_healthy:
         logger.error(
             "Ollama is not healthy or model not available. "
-            "Please ensure Ollama is running and qwen2.5:7b is pulled."
+            "Please ensure Ollama is running and qwen2.5:3b is pulled."
         )
-        logger.error("Run: ollama pull qwen2.5:7b")
+        logger.error("Run: ollama pull qwen2.5:3b")
         sys.exit(1)
 
     logger.info("Ollama health check passed")
